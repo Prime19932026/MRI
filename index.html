@@ -7,7 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    /* Định dạng riêng khi Xuất PDF / In khổ A4 */
     @media print {
       @page {
         size: A4 portrait;
@@ -106,9 +105,21 @@
 
         <!-- Câu hỏi sàng lọc -->
         <div class="space-y-4">
-          <h2 class="font-bold text-blue-900 border-b pb-1 text-base">
-            II. CÂU HỎI SÀNG LỌC <span class="font-normal italic text-slate-500 text-sm">/ Screening Questions</span>
-          </h2>
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+            <h2 class="font-bold text-blue-900 text-base">
+              II. CÂU HỎI SÀNG LỌC <span class="font-normal italic text-slate-500 text-sm">/ Screening Questions</span>
+            </h2>
+            <div class="flex gap-2">
+              <button type="button" onclick="speakAllQuestions()"
+                class="px-3 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 text-xs font-bold transition">
+                🔊 Nghe tất cả
+              </button>
+              <button type="button" onclick="stopSpeaking()"
+                class="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition">
+                ⏹ Dừng
+              </button>
+            </div>
+          </div>
           <div id="questions-container" class="space-y-4"></div>
         </div>
 
@@ -164,7 +175,6 @@
 
   <!-- ==================== 3. GIAO DIỆN MÃ QR & CÀI ĐẶT ==================== -->
   <main id="view-settings" class="no-print max-w-2xl mx-auto p-4 sm:p-6 hidden space-y-6">
-    <!-- Thẻ Mã QR -->
     <div class="bg-white rounded-2xl shadow p-6 text-center space-y-4 border border-slate-200">
       <h2 class="text-lg font-bold text-blue-900">Mã QR dành cho Bệnh nhân quét</h2>
       <p class="text-sm text-slate-600">Bệnh nhân dùng Camera hoặc Zalo quét mã này để mở thẳng tờ khai trên điện thoại.</p>
@@ -172,7 +182,6 @@
       <div class="text-xs text-slate-500 break-all bg-slate-50 p-2 rounded border" id="qr-url-display"></div>
     </div>
 
-    <!-- Cài đặt KTV & Đồng bộ Firebase -->
     <div class="bg-white rounded-2xl shadow p-6 space-y-4 border border-slate-200">
       <h2 class="text-lg font-bold text-blue-900">Cài đặt hệ thống</h2>
       <div>
@@ -206,13 +215,11 @@
       </div>
 
       <div class="p-5 space-y-5">
-        <!-- Bảng đối chiếu câu trả lời -->
         <div>
           <h4 class="font-bold text-sm text-slate-700 mb-2 uppercase">Kết quả sàng lọc (KTV đối chiếu lại với bệnh nhân):</h4>
           <div id="modal-answers" class="space-y-2 text-sm"></div>
         </div>
 
-        <!-- Khung Ký tên -->
         <div class="border-t pt-4">
           <div class="flex justify-between items-center mb-2">
             <label class="font-bold text-sm text-blue-900">BỆNH NHÂN / NGƯỜI NHÀ KÝ XÁC NHẬN:</label>
@@ -226,7 +233,6 @@
           <p class="text-xs text-slate-500 mt-1 text-center">Ký trực tiếp bằng chuột hoặc ngón tay trên màn hình cảm ứng</p>
         </div>
 
-        <!-- Nút thao tác -->
         <div class="flex flex-wrap justify-end gap-3 pt-2 border-t">
           <button onclick="closeModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-sm">
             Đóng
@@ -258,7 +264,6 @@
       <div class="italic text-[11pt]">MRI Safety Screening & Consent Form</div>
     </div>
 
-    <!-- Thông tin hành chính -->
     <div class="mb-4 text-[12pt] space-y-1.5">
       <div class="flex justify-between">
         <div><b>Họ và tên bệnh nhân</b> <i>(Full Name)</i>: <span id="print-name" class="font-bold uppercase"></span></div>
@@ -269,7 +274,6 @@
       </div>
     </div>
 
-    <!-- Bảng câu hỏi -->
     <table class="w-full border-collapse border border-black text-[11pt] mb-4">
       <thead>
         <tr class="bg-gray-100">
@@ -283,13 +287,11 @@
       <tbody id="print-table-body"></tbody>
     </table>
 
-    <!-- Cam kết -->
     <div class="text-[11pt] mb-6 text-justify">
       <p><b>Cam kết của bệnh nhân / người nhà:</b> Tôi xin cam đoan những thông tin khai báo trên đây là hoàn toàn đúng sự thật và đã được nhân viên y tế giải thích rõ về các quy định an toàn trước khi vào phòng chụp Cộng hưởng từ (MRI).</p>
       <p class="italic text-[10pt] mt-1"><b>Patient / Guardian Declaration:</b> I certify that the information provided above is true and accurate to the best of my knowledge, and I have been informed of the MRI safety guidelines.</p>
     </div>
 
-    <!-- Chữ ký -->
     <div class="grid grid-cols-2 gap-4 text-center text-[11pt]">
       <div>
         <div class="font-bold">KỸ THUẬT VIÊN THỰC HIỆN</div>
@@ -345,6 +347,36 @@
     let currentPatientId = null;
     let pollInterval = null;
 
+    // ==================== TÍNH NĂNG VOICE ĐỌC CÂU HỎI ====================
+    function speakText(text) {
+      if (!("speechSynthesis" in window)) {
+        alert("Trình duyệt này không hỗ trợ đọc giọng nói. Vui lòng mở bằng Chrome hoặc Safari.");
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "vi-VN";
+      utter.rate = 0.92; // Đọc chậm rãi, rõ ràng cho bệnh nhân dễ nghe
+      window.speechSynthesis.speak(utter);
+    }
+
+    function speakQuestion(idx) {
+      const q = QUESTIONS[idx];
+      if (!q) return;
+      speakText(`Câu hỏi số ${idx + 1}. ${q.vi}`);
+    }
+
+    function speakAllQuestions() {
+      const fullText = QUESTIONS.map((q, idx) => `Câu hỏi số ${idx + 1}. ${q.vi}`).join(" ... ");
+      speakText(fullText);
+    }
+
+    function stopSpeaking() {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
     // ==================== KHỞI TẠO ỨNG DỤNG ====================
     window.addEventListener("DOMContentLoaded", () => {
       renderQuestions();
@@ -352,7 +384,6 @@
       initSignaturePad();
 
       const params = new URLSearchParams(window.location.search);
-      // Hỗ trợ truyền link Firebase qua URL QR để điện thoại tự động đồng bộ
       if (params.get("fb")) {
         localStorage.setItem("mri_firebase_url", params.get("fb"));
       }
@@ -364,7 +395,6 @@
       } else {
         switchTab("ktv");
         loadPatients();
-        // Tự động cập nhật danh sách mỗi 4 giây
         pollInterval = setInterval(loadPatients, 4000);
       }
     });
@@ -374,9 +404,15 @@
       const container = document.getElementById("questions-container");
       container.innerHTML = QUESTIONS.map((q, idx) => `
         <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
-          <div>
-            <p class="font-semibold text-slate-800 text-base">${idx + 1}. ${q.vi}</p>
-            <p class="text-sm italic text-slate-500 mt-0.5">${q.en}</p>
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="font-semibold text-slate-800 text-base">${idx + 1}. ${q.vi}</p>
+              <p class="text-sm italic text-slate-500 mt-0.5">${q.en}</p>
+            </div>
+            <button type="button" onclick="speakQuestion(${idx})"
+              class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-100 hover:bg-blue-200 active:scale-95 text-blue-900 text-xs font-bold transition shadow-sm">
+              🔊 Nghe
+            </button>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <label class="cursor-pointer">
@@ -392,22 +428,19 @@
               </div>
             </label>
           </div>
-          <div id="detail-wrap-${q.id}" class="hidden">
+          <div id="detail-wrap-${q.id}">
             <input type="text" id="detail-${q.id}" placeholder="${q.placeholder}"
-              class="w-full px-3 py-2.5 rounded-lg border border-red-300 bg-white focus:ring-2 focus:ring-red-400 focus:outline-none text-sm" />
+              class="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm" />
           </div>
         </div>
       `).join("");
     }
 
     function toggleDetail(qid, show) {
-      const wrap = document.getElementById(`detail-wrap-${qid}`);
       const input = document.getElementById(`detail-${qid}`);
       if (show) {
-        wrap.classList.remove("hidden");
         input.focus();
       } else {
-        wrap.classList.add("hidden");
         input.value = "";
       }
     }
@@ -415,6 +448,7 @@
     // ==================== GỬI FORM BỆNH NHÂN ====================
     document.getElementById("mri-form").addEventListener("submit", async (e) => {
       e.preventDefault();
+      stopSpeaking();
       const btn = document.getElementById("btn-submit");
       btn.disabled = true;
       btn.textContent = "Đang gửi...";
@@ -450,8 +484,8 @@
     });
 
     function resetPatientForm() {
+      stopSpeaking();
       document.getElementById("mri-form").reset();
-      QUESTIONS.forEach(q => toggleDetail(q.id, false));
       document.getElementById("submit-success").classList.add("hidden");
       document.getElementById("mri-form").classList.remove("hidden");
     }
@@ -607,7 +641,6 @@
       await saveRecord(p);
       renderPatientList();
 
-      // Đổ dữ liệu vào mẫu in A4
       document.getElementById("print-name").textContent = p.name;
       document.getElementById("print-sign-name").textContent = p.name;
       document.getElementById("print-yob").textContent = p.yob;
@@ -689,6 +722,7 @@
 
     // ==================== CHUYỂN TAB & MÃ QR ====================
     function switchTab(tab) {
+      stopSpeaking();
       ["ktv", "patient", "settings"].forEach(t => {
         document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
         const btn = document.getElementById(`tab-${t}`);
